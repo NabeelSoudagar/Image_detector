@@ -25,7 +25,7 @@ function Login({ onLogin }) {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:5000/api/login', formData);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/login`, formData);
       // Assuming login is successful, store token and redirect
       localStorage.setItem('token', response.data.token);
       onLogin();
