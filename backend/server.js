@@ -14,7 +14,10 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 // --- Middleware ---
-app.use(cors()); // Allow requests from your React app
+app.use(cors({
+  origin: "https://image-detector-1.onrender.com", // your frontend Render URL here
+  credentials: true
+})); // Allow requests from your React app
 app.use(express.json());
 
 // --- Multer Setup (to handle in-memory file uploads) ---
