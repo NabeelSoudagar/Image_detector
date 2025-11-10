@@ -251,5 +251,5 @@ app.get('/api/models', async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
+  console.log(`Server running on https://image-detector-58ue.onrender.com`);
 });

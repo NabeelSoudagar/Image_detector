@@ -11,6 +11,9 @@
 - [x] Update navbar styles to glassmorphism
 - [x] Update form inputs in Login and Signup to match theme
 - [x] Update links in Login and Signup to white color
+- [x] Replace localhost references with hosted URLs for production deployment
+- [x] Create Image_detect/.env with VITE_API_URL=https://image-detector-58ue.onrender.com
+- [x] Update backend/server.js console log to reflect hosted URL
 
 ## Followup Steps
 - [ ] Test the application by running the development server
@@ -18,3 +21,5 @@
 - [ ] Check navigation between pages works correctly
 - [ ] Ensure animations and responsiveness are working
 - [ ] Check for any console errors or warnings
+- [ ] Deploy updated code to production
+- [ ] Verify frontend connects to hosted backend API
