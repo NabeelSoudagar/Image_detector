@@ -1,25 +1,7 @@
-# TODO List for Home Page Creation and Theme Consistency
+# TODO: Remove Login/Signup and Make Home Page with Image Detection
 
-## Completed Tasks
-- [x] Create Home.jsx component with description of image detection need
-- [x] Add animated images and theme to Home component
-- [x] Create Home.css with modern styling and animations
-- [x] Import Home component in App.jsx
-- [x] Update routing to show Home on "/" and move ImageDetector to "/detect"
-- [x] Update Navbar to include "Detect" link for authenticated users
-- [x] Update App.css to match home page theme (gradient background, glassmorphism containers, white text)
-- [x] Update navbar styles to glassmorphism
-- [x] Update form inputs in Login and Signup to match theme
-- [x] Update links in Login and Signup to white color
-- [x] Replace localhost references with hosted URLs for production deployment
-- [x] Create Image_detect/.env with VITE_API_URL=https://image-detector-58ue.onrender.com
-- [x] Update backend/server.js console log to reflect hosted URL
-
-## Followup Steps
-- [ ] Test the application by running the development server
-- [ ] Verify all pages have consistent theme and colors
-- [ ] Check navigation between pages works correctly
-- [ ] Ensure animations and responsiveness are working
-- [ ] Check for any console errors or warnings
-- [ ] Deploy updated code to production
-- [ ] Verify frontend connects to hosted backend API
+- [x] Edit App.jsx: Remove authentication logic, routes for /signup and /login, remove imports for Login, Signup, ProtectedRoute, simplify routing to only / with Home, remove ImageDetector component.
+- [x] Edit Home.jsx: Integrate image detection functionality (form, state, handlers) from App.jsx's ImageDetector component.
+- [x] Edit Navbar.jsx: Simplify to only show brand link, remove auth-related links.
+- [x] Followup: Run the frontend to verify home page loads with detection functionality.
+- [x] Followup: Check that image upload and analysis work without auth.
