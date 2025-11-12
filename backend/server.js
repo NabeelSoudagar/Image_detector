@@ -12,8 +12,8 @@ const port = process.env.PORT || 5000;
 
 // --- Middleware ---
 app.use(cors({
-  origin: "https://image-detector-1.onrender.com", // your frontend Render URL here
-  credentials: true
+  origin: "*", // Allow all origins for now
+  credentials: false
 })); // Allow requests from your React app
 app.use(express.json());
 
