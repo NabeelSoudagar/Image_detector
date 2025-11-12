@@ -57,6 +57,30 @@ function Home() {
         <p className="hero-subtitle animate-slide-up">
           Discover the truth behind images in an era of advanced AI generation.
         </p>
+        <div className="hero-upload-section">
+          <div className="upload-container">
+            <input
+              type="file"
+              accept="image/png, image/jpeg"
+              onChange={handleFileChange}
+              id="hero-file-input"
+              className="hero-file-input"
+            />
+            <label htmlFor="hero-file-input" className="hero-upload-button">
+              <span className="upload-icon">📷</span>
+              Choose Image to Analyze
+            </label>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={isLoading || !selectedFile}
+              className="hero-analyze-button"
+            >
+              {isLoading ? 'Analyzing...' : 'Analyze Now'}
+            </button>
+          </div>
+          {error && <p className="hero-error">{error}</p>}
+        </div>
       </header>
 
       <section className="description-section">
