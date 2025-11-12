@@ -1,11 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const cors = require('cors');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const path = require('path');
-const { query } = require('./db');
 
 // --- Load .env file from the correct path ---
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
@@ -51,116 +48,8 @@ function bufferToGenerativePart(buffer, mimeType) {
 
 
 
-// --- Authentication Endpoints ---
-
-// Signup endpoint
-app.post('/api/signup', async (req, res) => {
-  try {
-    const { username, email, password } = req.body;
-
-    // Validate input
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: 'Username, email, and password are required' });
-    }
-
-    // Check if user already exists
-    const existingUserQuery = 'SELECT id FROM users WHERE email = $1 OR username = $2';
-    const existingUser = await query(existingUserQuery, [email, username]);
-
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ error: 'User with this email or username already exists' });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Insert new user
-    const insertUserQuery = `
-      INSERT INTO users (username, email, password_hash, created_at, updated_at)
-      VALUES ($1, $2, $3, NOW(), NOW())
-      RETURNING id, username, email, created_at
-    `;
-    const newUser = await query(insertUserQuery, [username, email, hashedPassword]);
-
-    res.status(201).json({
-      message: 'User created successfully',
-      user: newUser.rows[0]
-    });
-
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ error: 'Internal server error during signup' });
-  }
-});
-
-// Login endpoint
-app.post('/api/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Validate input
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    // Find user by email
-    const findUserQuery = 'SELECT id, username, email, password_hash FROM users WHERE email = $1';
-    const userResult = await query(findUserQuery, [email]);
-
-    if (userResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    const user = userResult.rows[0];
-
-    // Check password
-    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-    if (!isPasswordValid) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    // Generate JWT
-    const token = jwt.sign(
-      { id: user.id, email: user.email, username: user.username },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
-
-    res.json({
-      token,
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email
-      }
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    res.status(500).json({ error: 'Internal server error during login' });
-  }
-});
-
-// Middleware to verify JWT
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Access token required' });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET || 'secret', (err, user) => {
-    if (err) {
-      return res.status(403).json({ error: 'Invalid token' });
-    }
-    req.user = user;
-    next();
-  });
-};
-
-// Protect the analyze endpoint
-app.post('/api/analyze', authenticateToken, upload.single('image'), async (req, res) => {
+// Public analyze endpoint
+app.post('/api/analyze', upload.single('image'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No image file uploaded.' });
   }
@@ -202,18 +91,7 @@ app.post('/api/analyze', authenticateToken, upload.single('image'), async (req, 
       // Parse the JSON string into an object
       const data = JSON.parse(jsonResponse);
 
-      // Save analysis to database
-      const insertAnalysisQuery = `
-        INSERT INTO analysis_history (user_id, image_name, is_ai, confidence, reason, analyzed_at)
-        VALUES ($1, $2, $3, $4, $5, NOW())
-      `;
-      await query(insertAnalysisQuery, [
-        req.user.id,
-        req.file.originalname || 'uploaded_image',
-        data.is_ai,
-        data.confidence,
-        data.reason
-      ]);
+      // Note: Database saving removed for public access
 
       res.json(data); // Send success response
 

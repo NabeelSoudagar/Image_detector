@@ -5,3 +5,4 @@
 - [x] Edit Navbar.jsx: Simplify to only show brand link, remove auth-related links.
 - [x] Followup: Run the frontend to verify home page loads with detection functionality.
 - [x] Followup: Check that image upload and analysis work without auth.
+- [x] Remove backend signup and login code: Remove signup/login endpoints, authenticateToken middleware, and make /api/analyze public.
