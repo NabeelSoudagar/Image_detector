@@ -1,53 +1,141 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import './Home.css'; // We'll add styles for the home page
 
 function Home() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const [result, setResult] = useState(null);
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [previews, setPreviews] = useState([]);
+  const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isDragOver, setIsDragOver] = useState(false);
+  const [progress, setProgress] = useState({});
+  const [viewModes, setViewModes] = useState({});
+  const fileInputRef = useRef(null);
+  const MAX_FILES = 10;
+
+  const validateFiles = (files) => {
+    const validFiles = [];
+    const errors = [];
+
+    for (let file of files) {
+      if (!file.type.startsWith('image/')) {
+        errors.push(`${file.name} is not an image file.`);
+        continue;
+      }
+      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+        errors.push(`${file.name} is too large (max 10MB).`);
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    return { validFiles, errors };
+  };
+
+  const handleFiles = (files) => {
+    const { validFiles, errors } = validateFiles(files);
+    const totalFiles = selectedFiles.length + validFiles.length;
+
+    if (totalFiles > MAX_FILES) {
+      setError(`Maximum ${MAX_FILES} images allowed. You tried to add ${validFiles.length} more.`);
+      return;
+    }
+
+    if (errors.length > 0) {
+      setError(errors.join(' '));
+    }
+
+    const newFiles = [...selectedFiles, ...validFiles];
+    setSelectedFiles(newFiles);
+    setResults([]); // Reset results on new files
+    setError(null);
+
+    // Create previews
+    const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+    setPreviews([...previews, ...newPreviews]);
+  };
 
   const handleFileChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedFile(file);
-      setResult(null); // Reset result on new file
-      setError(null);  // Reset error
-      // Create a preview URL
-      setPreview(URL.createObjectURL(file));
-    }
+    const files = Array.from(event.target.files);
+    handleFiles(files);
+  };
+
+  const handleDragOver = (event) => {
+    event.preventDefault();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event) => {
+    event.preventDefault();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event) => {
+    event.preventDefault();
+    setIsDragOver(false);
+    const files = Array.from(event.dataTransfer.files);
+    handleFiles(files);
+  };
+
+  const removeFile = (index) => {
+    const newFiles = selectedFiles.filter((_, i) => i !== index);
+    const newPreviews = previews.filter((_, i) => i !== index);
+    const newResults = results.filter((_, i) => i !== index);
+    setSelectedFiles(newFiles);
+    setPreviews(newPreviews);
+    setResults(newResults);
+    setProgress(prev => {
+      const newProgress = { ...prev };
+      delete newProgress[index];
+      return newProgress;
+    });
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!selectedFile) {
-      setError('Please select an image file first.');
+    if (selectedFiles.length === 0) {
+      setError('Please select at least one image file.');
       return;
     }
 
     setIsLoading(true);
     setError(null);
-    setResult(null);
+    setResults([]);
+    setProgress({});
 
-    // We use FormData to send the file
-    const formData = new FormData();
-    formData.append('image', selectedFile);
+    const newResults = [];
+    const newProgress = {};
 
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/analyze`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setResult(response.data);
-    } catch (err) {
-      console.error(err);
-      setError('Analysis failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+    for (let i = 0; i < selectedFiles.length; i++) {
+      newProgress[i] = 0;
+      setProgress({ ...newProgress });
+
+      try {
+        const formData = new FormData();
+        formData.append('image', selectedFiles[i]);
+
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/analyze`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            newProgress[i] = percentCompleted;
+            setProgress({ ...newProgress });
+          },
+        });
+
+        newResults[i] = response.data;
+        setResults([...newResults]);
+      } catch (err) {
+        console.error(err);
+        newResults[i] = { error: 'Analysis failed for this image.' };
+        setResults([...newResults]);
+      }
     }
+
+    setIsLoading(false);
   };
 
   return (
@@ -58,29 +146,57 @@ function Home() {
           Discover the truth behind images in an era of advanced AI generation.
         </p>
         <div className="hero-upload-section">
-          <div className="upload-container">
+          <div
+            className={`upload-container ${isDragOver ? 'drag-over' : ''}`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
             <input
               type="file"
-              accept="image/png, image/jpeg"
+              accept="image/*"
+              multiple
               onChange={handleFileChange}
               id="hero-file-input"
               className="hero-file-input"
+              ref={fileInputRef}
             />
             <label htmlFor="hero-file-input" className="hero-upload-button">
               <span className="upload-icon">📷</span>
-              Choose Image to Analyze
+              {isDragOver ? 'Drop images here' : 'Choose Images or Drag & Drop'}
             </label>
+            <p className="upload-limit">Max {MAX_FILES} images, up to 10MB each</p>
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={isLoading || !selectedFile}
+              disabled={isLoading || selectedFiles.length === 0}
               className="hero-analyze-button"
             >
-              {isLoading ? 'Analyzing...' : 'Analyze Now'}
+              {isLoading ? 'Analyzing...' : `Analyze ${selectedFiles.length} Image${selectedFiles.length !== 1 ? 's' : ''}`}
             </button>
-            {preview && (
-              <div className="image-preview">
-                <img src={preview} alt="Image Preview" className="preview-image" />
+            {previews.length > 0 && (
+              <div className="images-preview">
+                {previews.map((preview, index) => (
+                  <div key={index} className="image-preview-item">
+                    <img src={preview} alt={`Preview ${index + 1}`} className="preview-image" />
+                    <button
+                      type="button"
+                      onClick={() => removeFile(index)}
+                      className="remove-image-btn"
+                      title="Remove image"
+                    >
+                      ✕
+                    </button>
+                    {progress[index] !== undefined && (
+                      <div className="progress-bar">
+                        <div
+                          className="progress-fill"
+                          style={{ width: `${progress[index]}%` }}
+                        ></div>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
@@ -88,24 +204,61 @@ function Home() {
         </div>
       </header>
 
-      {result && (
+      {results.length > 0 && (
         <section className="results-section">
           <div className="results-container">
             <h2 className="results-title">Analysis Results</h2>
-            <div className="result-box">
-              <img src={preview} alt="Analyzed" className="result-image" />
-              <div className="result-details">
-                <h2 className={result.is_ai ? 'ai' : 'real'}>
-                  {result.is_ai ? 'AI-Generated' : 'Likely Real'}
-                </h2>
-                <p>
-                  <strong>Confidence:</strong>
-                  <span> {Math.round(result.confidence * 100)}%</span>
-                </p>
-                <p>
-                  <strong>Reason:</strong> {result.reason}
-                </p>
-              </div>
+            <div className="results-grid">
+              {results.map((result, index) => (
+                <div key={index} className="result-box">
+                  <img src={previews[index]} alt={`Analyzed ${index + 1}`} className="result-image" />
+                  <div className="result-details">
+                    {result.error ? (
+                      <h2 className="error">Analysis Failed</h2>
+                    ) : (
+                      <>
+                        <h2 className={result.is_ai ? 'ai' : 'real'}>
+                          {result.is_ai ? 'AI-Generated' : 'Likely Real'}
+                        </h2>
+                        <p>
+                          <strong>Confidence:</strong>
+                          <span> {Math.round(result.confidence * 100)}%</span>
+                        </p>
+                        <p>
+                          <strong>Reason:</strong> {result.reason}
+                        </p>
+                        <div className="result-actions">
+                          <div className="view-toggle">
+                            <button
+                              onClick={() => setViewModes(prev => ({ ...prev, [index]: 'original' }))}
+                              className={`toggle-btn ${viewModes[index] === 'original' ? 'active' : ''}`}
+                            >
+                              Original
+                            </button>
+                            <button
+                              onClick={() => setViewModes(prev => ({ ...prev, [index]: 'highlighted' }))}
+                              className={`toggle-btn ${viewModes[index] === 'highlighted' ? 'active' : ''}`}
+                            >
+                              Highlighted
+                            </button>
+                          </div>
+                          <button
+                            onClick={() => {
+                              const link = document.createElement('a');
+                              link.href = previews[index];
+                              link.download = `analyzed-image-${index + 1}.png`;
+                              link.click();
+                            }}
+                            className="download-btn"
+                          >
+                            Download
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>

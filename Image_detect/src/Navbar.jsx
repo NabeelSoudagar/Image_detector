@@ -8,6 +8,13 @@ function Navbar() {
         <Link to="/" className="navbar-brand">
           AI Image Detector
         </Link>
+        <ul className="navbar-nav">
+          <li>
+            <Link to="/features" className="navbar-link">
+              Features
+            </Link>
+          </li>
+        </ul>
       </div>
     </nav>
   );
