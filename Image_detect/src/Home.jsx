@@ -10,7 +10,7 @@ function Home() {
   const [error, setError] = useState(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [progress, setProgress] = useState({});
-  const [viewModes, setViewModes] = useState({});
+
   const fileInputRef = useRef(null);
   const MAX_FILES = 10;
 
@@ -205,7 +205,7 @@ function Home() {
       </header>
 
       {results.length > 0 && (
-        <section className="results-section">
+        <section className="results-section animate-slide-up">
           <div className="results-container">
             <h2 className="results-title">Analysis Results</h2>
             <div className="results-grid">
@@ -227,33 +227,7 @@ function Home() {
                         <p>
                           <strong>Reason:</strong> {result.reason}
                         </p>
-                        <div className="result-actions">
-                          <div className="view-toggle">
-                            <button
-                              onClick={() => setViewModes(prev => ({ ...prev, [index]: 'original' }))}
-                              className={`toggle-btn ${viewModes[index] === 'original' ? 'active' : ''}`}
-                            >
-                              Original
-                            </button>
-                            <button
-                              onClick={() => setViewModes(prev => ({ ...prev, [index]: 'highlighted' }))}
-                              className={`toggle-btn ${viewModes[index] === 'highlighted' ? 'active' : ''}`}
-                            >
-                              Highlighted
-                            </button>
-                          </div>
-                          <button
-                            onClick={() => {
-                              const link = document.createElement('a');
-                              link.href = previews[index];
-                              link.download = `analyzed-image-${index + 1}.png`;
-                              link.click();
-                            }}
-                            className="download-btn"
-                          >
-                            Download
-                          </button>
-                        </div>
+
                       </>
                     )}
                   </div>
@@ -264,7 +238,7 @@ function Home() {
         </section>
       )}
 
-      <section className="description-section">
+      <section className="description-section animate-fade-in">
         <div className="description-content">
           <h2 className="section-title animate-fade-in-delay">Why Image Detection Matters</h2>
           <p className="description-text animate-slide-up-delay">
