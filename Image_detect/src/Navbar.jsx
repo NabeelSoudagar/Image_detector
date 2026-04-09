@@ -9,11 +9,6 @@ function Navbar() {
           AI Image Detector
         </Link>
         <ul className="navbar-nav">
-          <li>
-            <Link to="/features" className="navbar-link">
-              Features
-            </Link>
-          </li>
         </ul>
       </div>
     </nav>

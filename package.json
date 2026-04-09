@@ -1,7 +1,12 @@
 {
   "dependencies": {
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/core": "^8.3.0",
     "axios": "^1.12.2",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.3.0"
   }
 }

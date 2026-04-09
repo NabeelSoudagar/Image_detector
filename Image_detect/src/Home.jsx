@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import './Home.css'; // We'll add styles for the home page
+import './Home.css';
 
 function Home() {
   const [selectedFiles, setSelectedFiles] = useState([]);
@@ -14,17 +14,35 @@ function Home() {
   const fileInputRef = useRef(null);
   const MAX_FILES = 10;
 
+  useEffect(() => {
+    // Intersection Observer for the elegant scroll reveal animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+          // Optional: observer.unobserve(entry.target); to only animate once
+        }
+      });
+    }, { threshold: 0.1 });
+
+    const hiddenElements = document.querySelectorAll('.scroll-reveal');
+    hiddenElements.forEach((el) => observer.observe(el));
+
+    // Cleanup when component unmounts
+    return () => observer.disconnect();
+  }, [results]); // We add results here so dynamically loaded result-boxes also get observed
+
   const validateFiles = (files) => {
     const validFiles = [];
     const errors = [];
 
     for (let file of files) {
       if (!file.type.startsWith('image/')) {
-        errors.push(`${file.name} is not an image file.`);
+        errors.push(`"${file.name}" is not an image file.`);
         continue;
       }
       if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        errors.push(`${file.name} is too large (max 10MB).`);
+        errors.push(`"${file.name}" is too large (max 10MB).`);
         continue;
       }
       validFiles.push(file);
@@ -48,10 +66,9 @@ function Home() {
 
     const newFiles = [...selectedFiles, ...validFiles];
     setSelectedFiles(newFiles);
-    setResults([]); // Reset results on new files
+    setResults([]); 
     setError(null);
 
-    // Create previews
     const newPreviews = validFiles.map(file => URL.createObjectURL(file));
     setPreviews([...previews, ...newPreviews]);
   };
@@ -82,9 +99,11 @@ function Home() {
     const newFiles = selectedFiles.filter((_, i) => i !== index);
     const newPreviews = previews.filter((_, i) => i !== index);
     const newResults = results.filter((_, i) => i !== index);
+    
     setSelectedFiles(newFiles);
     setPreviews(newPreviews);
     setResults(newResults);
+    
     setProgress(prev => {
       const newProgress = { ...prev };
       delete newProgress[index];
@@ -116,9 +135,7 @@ function Home() {
         formData.append('image', selectedFiles[i]);
 
         const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/analyze`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+          headers: { 'Content-Type': 'multipart/form-data' },
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             newProgress[i] = percentCompleted;
@@ -140,14 +157,16 @@ function Home() {
 
   return (
     <div className="home-container">
+
       <header className="hero-section">
-        <h1 className="hero-title animate-fade-in">AI or Real? Image Detector</h1>
-        <p className="hero-subtitle animate-slide-up">
-          Discover the truth behind images in an era of advanced AI generation.
+        <h1 className="hero-title scroll-reveal">AI or Real? <span className="highlight-text">Image Detector</span></h1>
+        <p className="hero-subtitle scroll-reveal delay-small">
+          Uncover the truth behind images in an era of hyper-realistic generative AI. Our machine learning core provides sub-second deep analysis.
         </p>
-        <div className="hero-upload-section">
+
+        <div className="hero-upload-section scroll-reveal delay-med">
           <div
-            className={`upload-container ${isDragOver ? 'drag-over' : ''}`}
+            className={`upload-glass-panel ${isDragOver ? 'drag-over' : ''}`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -161,19 +180,33 @@ function Home() {
               className="hero-file-input"
               ref={fileInputRef}
             />
+            
+            <div className="upload-icon-wrapper">
+              <svg className="upload-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+              </svg>
+            </div>
+            
             <label htmlFor="hero-file-input" className="hero-upload-button">
-              <span className="upload-icon">📷</span>
-              {isDragOver ? 'Drop images here' : 'Choose Images or Drag & Drop'}
+              {isDragOver ? 'Drop to analyze' : 'Select Images or Drag & Drop'}
             </label>
-            <p className="upload-limit">Max {MAX_FILES} images, up to 10MB each</p>
+            <p className="upload-limit">Max {MAX_FILES} images, highest precision achievable up to 10MB.</p>
+            
             <button
               type="button"
               onClick={handleSubmit}
               disabled={isLoading || selectedFiles.length === 0}
-              className="hero-analyze-button"
+              className="action-button-glow"
             >
-              {isLoading ? 'Analyzing...' : `Analyze ${selectedFiles.length} Image${selectedFiles.length !== 1 ? 's' : ''}`}
+              <div className="button-content">
+                 {isLoading ? (
+                    <span className="spinner-text">Analyzing</span>
+                 ) : (
+                    `Scan ${selectedFiles.length} Image${selectedFiles.length !== 1 ? 's' : ''}`
+                 )}
+              </div>
             </button>
+
             {previews.length > 0 && (
               <div className="images-preview">
                 {previews.map((preview, index) => (
@@ -185,7 +218,7 @@ function Home() {
                       className="remove-image-btn"
                       title="Remove image"
                     >
-                      ✕
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                     {progress[index] !== undefined && (
                       <div className="progress-bar">
@@ -200,34 +233,51 @@ function Home() {
               </div>
             )}
           </div>
-          {error && <p className="hero-error">{error}</p>}
+          {error && <p className="hero-error scroll-reveal">{error}</p>}
         </div>
       </header>
 
       {results.length > 0 && (
-        <section className="results-section animate-slide-up">
+        <section className="results-section">
           <div className="results-container">
-            <h2 className="results-title">Analysis Results</h2>
+            <h2 className="section-title scroll-reveal">Analysis Engine Report</h2>
             <div className="results-grid">
               {results.map((result, index) => (
-                <div key={index} className="result-box">
-                  <img src={previews[index]} alt={`Analyzed ${index + 1}`} className="result-image" />
+                <div key={index} className="result-glass-card scroll-reveal">
+                  <div className="result-image-wrapper">
+                    <img src={previews[index]} alt={`Analyzed ${index + 1}`} className="result-image" />
+                    {/* Overlay badge on the image itself */}
+                    {!result.error && (
+                      <div className={`result-badge ${result.is_ai ? 'badge-ai' : 'badge-real'}`}>
+                        {result.is_ai ? 'AI-GENERATED' : 'AUTHENTIC'}
+                      </div>
+                    )}
+                  </div>
+                  
                   <div className="result-details">
                     {result.error ? (
-                      <h2 className="error">Analysis Failed</h2>
+                     <div className="error-state">
+                        <svg className="error-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                        <h3>Analysis Failed</h3>
+                     </div>
                     ) : (
                       <>
-                        <h2 className={result.is_ai ? 'ai' : 'real'}>
-                          {result.is_ai ? 'AI-Generated' : 'Likely Real'}
-                        </h2>
-                        <p>
-                          <strong>Confidence:</strong>
-                          <span> {Math.round(result.confidence * 100)}%</span>
-                        </p>
-                        <p>
-                          <strong>Reason:</strong> {result.reason}
-                        </p>
-
+                        <div className="confidence-meter">
+                          <div className="meter-label">
+                            <span className="meter-text">Confidence Level</span>
+                            <span className="meter-value">{Math.round(result.confidence * 100)}%</span>
+                          </div>
+                          <div className="meter-track">
+                             <div 
+                                className={`meter-fill ${result.is_ai ? 'fill-ai' : 'fill-real'}`} 
+                                style={{ width: `${result.confidence * 100}%` }}
+                             ></div>
+                          </div>
+                        </div>
+                        <div className="reasoning-box">
+                          <strong>Analysis Reasoning:</strong>
+                          <p>{result.reason}</p>
+                        </div>
                       </>
                     )}
                   </div>
@@ -238,45 +288,33 @@ function Home() {
         </section>
       )}
 
-      <section className="description-section animate-fade-in">
-        <div className="description-content">
-          <h2 className="section-title animate-fade-in-delay">Why Image Detection Matters</h2>
-          <p className="description-text animate-slide-up-delay">
-            In today's digital world, artificial intelligence can create incredibly realistic images that are indistinguishable from real photographs. This technology has revolutionized creativity and design, but it also poses challenges in verifying authenticity. Misinformation, deepfakes, and manipulated content can spread rapidly, affecting journalism, social media, and even legal proceedings.
-          </p>
-          <p className="description-text animate-slide-up-delay">
-            Our AI Image Detector uses cutting-edge machine learning algorithms to analyze images and determine whether they were likely generated by AI or captured in the real world. With high accuracy and fast processing, it helps users, content creators, and professionals make informed decisions about the media they encounter.
-          </p>
-        </div>
-
-      </section>
-
       <section className="features-section">
-        <h2 className="section-title animate-fade-in-delay">Key Features</h2>
+        <h2 className="section-title scroll-reveal">Engine Capabilities</h2>
         <div className="features-grid">
-          <div className="feature-card animate-slide-up">
-            <h3>High Accuracy</h3>
-            <p>Advanced AI models trained on millions of images for reliable detection.</p>
+          
+          <div className="feature-glass-box scroll-reveal">
+            <div className="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg></div>
+            <h3>Surgically Accurate</h3>
+            <p>Our deep learning pipeline spots minute structural anomalies impossible for the human eye to perceive.</p>
           </div>
-          <div className="feature-card animate-slide-up-delay">
-            <h3>Fast Analysis</h3>
-            <p>Get results in seconds, not minutes.</p>
+
+          <div className="feature-glass-box scroll-reveal delay-small">
+            <div className="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
+            <h3>Real-time Inference</h3>
+            <p>Leveraging high-end tensor processing units to return verdicts in absolute milliseconds.</p>
           </div>
-          <div className="feature-card animate-slide-up-delay-2">
-            <h3>User-Friendly</h3>
-            <p>Simple upload interface accessible to everyone.</p>
+
+          <div className="feature-glass-box scroll-reveal delay-med">
+             <div className="feature-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
+            <h3>Zero Data Retention</h3>
+            <p>We value privacy. Your uploaded files are analyzed exclusively in memory and wiped instantaneously.</p>
           </div>
-          <div className="feature-card animate-slide-up-delay-3">
-            <h3>Secure & Private</h3>
-            <p>Your images are processed securely and not stored permanently.</p>
-          </div>
+
         </div>
       </section>
 
-
-
-      <footer className="footer">
-        <p>&copy; 2024 AI Image Detector. Empowering truth in the digital age.</p>
+      <footer className="footer scroll-reveal">
+        <p>&copy; 2024 Project Ascendant. Authenticating the digital fabric.</p>
       </footer>
     </div>
   );
