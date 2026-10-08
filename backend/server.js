@@ -55,7 +55,7 @@ app.post('/api/analyze', upload.single('image'), async (req, res) => {
   }
 
   try {
-   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+   const model = genAI.getGenerativeModel({ model: 'gemini-3.8-flash' });
 
     // Updated prompt to be more insistent on JSON
     const prompt = `
